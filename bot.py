@@ -4,7 +4,6 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
 from gtts import gTTS
 import openai
-import tempfile
 
 # Включаем логирование (чтобы видеть ошибки, если они будут)
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
@@ -17,7 +16,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if OPENAI_API_KEY:
     openai.api_key = OPENAI_API_KEY
 
-# Функция обработки команд
+# Функция обработки команды /start
 async def start(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text("Привет! Я AI-бот. Напиши мне что-то!")
 
@@ -41,18 +40,22 @@ async def handle_message(update: Update, context: CallbackContext) -> None:
 async def voice_message(update: Update, context: CallbackContext) -> None:
     text = update.message.text
     tts = gTTS(text, lang="ru")
+    tts.save("voice.mp3")
 
-    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as temp_file:
-        tts.save(temp_file.name)
-        with open(temp_file.name, "rb") as voice:
-            await update.message.reply_voice(voice)
+    with open("voice.mp3", "rb") as voice:
+        await update.message.reply_voice(voice)
 
 # Главная функция
 def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
 
+    # Команда /start
     app.add_handler(CommandHandler("start", start))
+
+    # Обработка текстовых сообщений
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+    # Обработка голосовых сообщений
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, voice_message))
 
     print("Бот запущен...")
