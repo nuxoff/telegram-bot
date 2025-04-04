@@ -4,6 +4,7 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
 from gtts import gTTS
 import openai
+import tempfile
 
 # Включаем логирование (чтобы видеть ошибки, если они будут)
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
@@ -40,10 +41,11 @@ async def handle_message(update: Update, context: CallbackContext) -> None:
 async def voice_message(update: Update, context: CallbackContext) -> None:
     text = update.message.text
     tts = gTTS(text, lang="ru")
-    tts.save("voice.mp3")
 
-    with open("voice.mp3", "rb") as voice:
-        await update.message.reply_voice(voice)
+    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as temp_file:
+        tts.save(temp_file.name)
+        with open(temp_file.name, "rb") as voice:
+            await update.message.reply_voice(voice)
 
 # Главная функция
 def main():
